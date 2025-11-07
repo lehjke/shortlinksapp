@@ -94,6 +94,19 @@ class ShortLinkServiceTest {
         assertTrue(repository.findAll().isEmpty());
     }
 
+    @Test
+    void updateShouldChangeLimitAndRefreshTtl() {
+        UserAccount user = userService.registerNewUser();
+        ShortLink link = shortLinkService.createShortLink(user.getId(), "https://example.com/resource", 5);
+        Instant originalExpiry = link.getExpiresAt();
+
+        ShortLink updatedLimit = shortLinkService.updateShortLink(user.getId(), link.getCode(), 10, false);
+        assertEquals(10, updatedLimit.getMaxVisits());
+
+        ShortLink refreshed = shortLinkService.updateShortLink(user.getId(), link.getCode(), null, true);
+        assertTrue(refreshed.getExpiresAt().isAfter(originalExpiry));
+    }
+
     private static class SilentNotification implements NotificationService {
         @Override
         public void info(String message) {

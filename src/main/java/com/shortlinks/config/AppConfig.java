@@ -9,7 +9,7 @@ import java.util.Properties;
 
 public class AppConfig {
     private static final String PROPERTIES_FILE = "application.properties";
-    private static final String DEFAULT_DOMAIN = "https://clck.ru/";
+    private static final String DEFAULT_DOMAIN = "https://lehjke.ru/";
     private static final int DEFAULT_CODE_LENGTH = 7;
     private static final Duration DEFAULT_TTL = Duration.ofHours(24);
     private static final Duration DEFAULT_CLEANUP_INTERVAL = Duration.ofMinutes(1);

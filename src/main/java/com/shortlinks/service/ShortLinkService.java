@@ -40,10 +40,10 @@ public class ShortLinkService {
 
     public ShortLink createShortLink(UUID ownerId, String originalUrl, int maxVisits) {
         repository.findUser(ownerId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
         validateUrl(originalUrl);
         if (maxVisits <= 0) {
-            throw new IllegalArgumentException("Visit limit must be positive");
+            throw new IllegalArgumentException("Лимит переходов должен быть положительным");
         }
         Instant now = Instant.now();
         Instant expiration = now.plus(ttl);
@@ -56,26 +56,26 @@ public class ShortLinkService {
         String code = extractCode(rawCodeOrUrl);
         Optional<ShortLink> optional = repository.findByCode(code);
         if (optional.isEmpty()) {
-            notificationService.warning("Short link not found.");
-            return new VisitResult(VisitStatus.NOT_FOUND, "Short link not found");
+            notificationService.warning("Короткая ссылка не найдена.");
+            return new VisitResult(VisitStatus.NOT_FOUND, "Короткая ссылка не найдена");
         }
         ShortLink link = optional.get();
         Instant now = Instant.now();
         if (link.isExpired(now)) {
             repository.delete(code);
-            notificationService.warning("Link expired and removed.");
-            return new VisitResult(VisitStatus.EXPIRED, "Link expired", link);
+            notificationService.warning("Ссылка истекла и удалена.");
+            return new VisitResult(VisitStatus.EXPIRED, "Срок действия ссылки истёк", link);
         }
         if (link.isVisitLimitReached()) {
-            notificationService.warning("Visit limit reached for this link.");
-            return new VisitResult(VisitStatus.LIMIT_REACHED, "Visit limit reached", link);
+            notificationService.warning("Достигнут лимит переходов по ссылке.");
+            return new VisitResult(VisitStatus.LIMIT_REACHED, "Лимит переходов исчерпан", link);
         }
 
         link.setVisitCount(link.getVisitCount() + 1);
         repository.save(link);
-        notificationService.info("Redirecting to original URL...");
+        notificationService.info("Открываю оригинальный адрес…");
         openInBrowserIfEnabled(link.getOriginalUrl());
-        return new VisitResult(VisitStatus.SUCCESS, "OK", link);
+        return new VisitResult(VisitStatus.SUCCESS, "Успешно", link);
     }
 
     public boolean deleteShortLink(UUID ownerId, String codeInput) {
@@ -86,7 +86,7 @@ public class ShortLinkService {
         }
         ShortLink link = optional.get();
         if (!link.getOwnerId().equals(ownerId)) {
-            throw new IllegalStateException("You can delete only your own links");
+            throw new IllegalStateException("Можно удалять только собственные ссылки");
         }
         return repository.delete(code);
     }
@@ -103,9 +103,37 @@ public class ShortLinkService {
         return repository.deleteExpired(Instant.now());
     }
 
+    public ShortLink updateShortLink(UUID ownerId,
+                                     String codeInput,
+                                     Integer newMaxVisits,
+                                     boolean refreshTtl) {
+        if (newMaxVisits == null && !refreshTtl) {
+            throw new IllegalArgumentException("Нужно указать новый лимит или выбрать продление срока действия");
+        }
+        String code = extractCode(codeInput);
+        ShortLink link = repository.findByCode(code)
+                .orElseThrow(() -> new IllegalArgumentException("Ссылка не найдена"));
+        if (!link.getOwnerId().equals(ownerId)) {
+            throw new IllegalStateException("Можно редактировать только свои ссылки");
+        }
+        if (newMaxVisits != null) {
+            if (newMaxVisits <= 0) {
+                throw new IllegalArgumentException("Лимит должен быть положительным");
+            }
+            if (newMaxVisits < link.getVisitCount()) {
+                throw new IllegalArgumentException("Новый лимит меньше уже использованных переходов");
+            }
+            link.setMaxVisits(newMaxVisits);
+        }
+        if (refreshTtl) {
+            link.setExpiresAt(Instant.now().plus(ttl));
+        }
+        return repository.save(link);
+    }
+
     private String extractCode(String raw) {
         if (raw == null || raw.isBlank()) {
-            throw new IllegalArgumentException("Short link cannot be empty");
+            throw new IllegalArgumentException("Короткая ссылка не может быть пустой");
         }
         String trimmed = raw.trim();
         int queryIndex = trimmed.indexOf('?');
@@ -135,10 +163,10 @@ public class ShortLinkService {
         try {
             URI uri = new URI(url.trim());
             if (uri.getScheme() == null || uri.getHost() == null) {
-                throw new IllegalArgumentException("URL must contain scheme and host");
+                throw new IllegalArgumentException("URL должен содержать схему и домен");
             }
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid URL format", e);
+            throw new IllegalArgumentException("Некорректный URL", e);
         }
     }
 
@@ -147,13 +175,13 @@ public class ShortLinkService {
             return;
         }
         if (!Desktop.isDesktopSupported()) {
-            notificationService.warning("Desktop API is not supported. Cannot open browser automatically.");
+            notificationService.warning("Desktop API недоступен. Автопереход невозможен.");
             return;
         }
         try {
             Desktop.getDesktop().browse(URI.create(url));
         } catch (IOException | IllegalArgumentException e) {
-            notificationService.error("Failed to open browser: " + e.getMessage());
+            notificationService.error("Не удалось открыть браузер: " + e.getMessage());
         }
     }
 
@@ -168,7 +196,7 @@ public class ShortLinkService {
         return trimmed;
     }
 
-    private static final String DEFAULT_DOMAIN_FALLBACK = "https://clck.ru/";
+    private static final String DEFAULT_DOMAIN_FALLBACK = "https://lehjke.ru/";
 
     public enum VisitStatus {
         SUCCESS,

@@ -1,0 +1,34 @@
+{
+  "users" : {
+    "a61c6c6e-b87e-441b-99f2-8c1407f3ae73" : {
+      "id" : "a61c6c6e-b87e-441b-99f2-8c1407f3ae73",
+      "createdAt" : "2025-11-07T14:29:00.422346600Z"
+    },
+    "fba61946-89c1-41ad-bd95-de093f1da0aa" : {
+      "id" : "fba61946-89c1-41ad-bd95-de093f1da0aa",
+      "createdAt" : "2025-11-07T14:35:38.703948400Z"
+    }
+  },
+  "shortLinks" : {
+    "3Qsca0H" : {
+      "code" : "3Qsca0H",
+      "ownerId" : "a61c6c6e-b87e-441b-99f2-8c1407f3ae73",
+      "originalUrl" : "https://www.youtube.com/watch?v=20pqWEJlXWs",
+      "maxVisits" : 5,
+      "visitCount" : 0,
+      "createdAt" : "2025-11-07T14:29:36.990388100Z",
+      "expiresAt" : "2025-11-08T14:29:36.990388100Z",
+      "visitLimitReached" : false
+    },
+    "ZwRgiFV" : {
+      "code" : "ZwRgiFV",
+      "ownerId" : "fba61946-89c1-41ad-bd95-de093f1da0aa",
+      "originalUrl" : "https://www.youtube.com/watch?v=20pqWEJlXWs",
+      "maxVisits" : 5,
+      "visitCount" : 1,
+      "createdAt" : "2025-11-07T14:35:56.277650Z",
+      "expiresAt" : "2025-11-08T14:35:56.277650Z",
+      "visitLimitReached" : false
+    }
+  }
+}

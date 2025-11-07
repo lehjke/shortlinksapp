@@ -29,10 +29,10 @@ public class ShortLinkCleaner implements AutoCloseable {
         try {
             List<ShortLink> removed = shortLinkService.removeExpired();
             if (!removed.isEmpty()) {
-                notificationService.info("Removed expired links: " + removed.size());
+                notificationService.info("Удалено просроченных ссылок: " + removed.size());
             }
         } catch (Exception e) {
-            notificationService.error("Cleanup job failed: " + e.getMessage());
+            notificationService.error("Ошибка фоновой очистки: " + e.getMessage());
         }
     }
 

@@ -1,8 +1,11 @@
 package com.shortlinks.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.time.Instant;
 import java.util.UUID;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ShortLink {
     private String code;
     private UUID ownerId;
