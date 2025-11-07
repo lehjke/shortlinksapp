@@ -1,0 +1,24 @@
+# Build outputs
+/target/
+/out/
+
+# IDE files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+*.tmp
+
+# Maven Wrapper binaries cache
+.mvn/wrapper/maven-wrapper.jar
+
+# Copilot upgrade artifacts
+.github/java-upgrade/

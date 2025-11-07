@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -105,6 +106,104 @@ class ShortLinkServiceTest {
 
         ShortLink refreshed = shortLinkService.updateShortLink(user.getId(), link.getCode(), null, true);
         assertTrue(refreshed.getExpiresAt().isAfter(originalExpiry));
+    }
+
+    @Test
+    void createShortLinkShouldValidateUrl() {
+        UserAccount user = userService.registerNewUser();
+        assertThrows(IllegalArgumentException.class,
+                () -> shortLinkService.createShortLink(user.getId(), "invalid-url", 3));
+    }
+
+    @Test
+    void createShortLinkShouldRejectNonPositiveLimit() {
+        UserAccount user = userService.registerNewUser();
+        assertThrows(IllegalArgumentException.class,
+                () -> shortLinkService.createShortLink(user.getId(), "https://example.com", 0));
+    }
+
+    @Test
+    void deleteShouldRemoveOwnLink() {
+        UserAccount user = userService.registerNewUser();
+        ShortLink link = shortLinkService.createShortLink(user.getId(), "https://example.com/resource", 2);
+
+        assertTrue(shortLinkService.deleteShortLink(user.getId(), link.getCode()));
+        assertTrue(repository.findByCode(link.getCode()).isEmpty());
+    }
+
+    @Test
+    void deleteShouldRejectForeignLink() {
+        UserAccount owner = userService.registerNewUser();
+        UserAccount other = userService.registerNewUser();
+        ShortLink link = shortLinkService.createShortLink(owner.getId(), "https://example.com/resource", 2);
+
+        assertThrows(IllegalStateException.class,
+                () -> shortLinkService.deleteShortLink(other.getId(), link.getCode()));
+    }
+
+    @Test
+    void deleteShouldReturnFalseWhenLinkMissing() {
+        UserAccount user = userService.registerNewUser();
+        assertFalse(shortLinkService.deleteShortLink(user.getId(), "UNKNOWN"));
+    }
+
+    @Test
+    void visitShouldAcceptFullUrlWithQueryAndFragment() {
+        UserAccount user = userService.registerNewUser();
+        ShortLink link = shortLinkService.createShortLink(user.getId(), "https://example.com/resource", 3);
+
+        ShortLinkService.VisitResult result = shortLinkService.visit(
+                shortLinkService.toFullShortUrl(link.getCode()) + "?utm=test#section");
+
+        assertEquals(ShortLinkService.VisitStatus.SUCCESS, result.getStatus());
+        assertEquals(1, repository.findByCode(link.getCode()).orElseThrow().getVisitCount());
+    }
+
+    @Test
+    void listLinksShouldExposeOnlyOwnerLinks() {
+        UserAccount first = userService.registerNewUser();
+        UserAccount second = userService.registerNewUser();
+        ShortLink firstLink = shortLinkService.createShortLink(first.getId(), "https://example.com/a", 3);
+        shortLinkService.createShortLink(second.getId(), "https://example.com/b", 3);
+
+        List<ShortLink> firstLinks = shortLinkService.listLinks(first.getId());
+        assertEquals(1, firstLinks.size());
+        assertEquals(firstLink.getCode(), firstLinks.get(0).getCode());
+    }
+
+    @Test
+    void updateShouldRequireAtLeastOneChange() {
+        UserAccount user = userService.registerNewUser();
+        ShortLink link = shortLinkService.createShortLink(user.getId(), "https://example.com/resource", 3);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> shortLinkService.updateShortLink(user.getId(), link.getCode(), null, false));
+    }
+
+    @Test
+    void updateShouldRejectLimitLowerThanUsed() {
+        UserAccount user = userService.registerNewUser();
+        ShortLink link = shortLinkService.createShortLink(user.getId(), "https://example.com/resource", 3);
+        shortLinkService.visit(link.getCode());
+        shortLinkService.visit(link.getCode());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> shortLinkService.updateShortLink(user.getId(), link.getCode(), 1, false));
+    }
+
+    @Test
+    void cleanupShouldLeaveActiveLinks() {
+        UserAccount user = userService.registerNewUser();
+        ShortLink link = shortLinkService.createShortLink(user.getId(), "https://example.com/resource", 3);
+
+        assertTrue(shortLinkService.removeExpired().isEmpty());
+        assertTrue(repository.findByCode(link.getCode()).isPresent());
+    }
+
+    @Test
+    void userRegistrationShouldPersistAccount() {
+        UserAccount user = userService.registerNewUser();
+        assertTrue(repository.findUser(user.getId()).isPresent());
     }
 
     private static class SilentNotification implements NotificationService {
